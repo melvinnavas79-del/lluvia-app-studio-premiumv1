@@ -1,33 +1,35 @@
-name: Deploy to Production
+name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "backend/**"
+      - "frontend/src/**"
+      - "frontend/public/**"
       - "docker-compose.yml"
-      - ".github/workflows/deploy.yml"
+      - "nginx.conf"
 
   workflow_dispatch:
     inputs:
-      force:
-        description: "Force deploy even without code changes"
-        type: boolean
-        default: false
+      environment:
+        description: "Target (production=main, staging=develop)"
+        type: choice
+        options: [production, staging]
+        default: production
 
 jobs:
-  deploy:
-    name: Deploy VPS
+  deploy-production:
+    name: "→ Production (main)"
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment: production
     concurrency:
       group: production
       cancel-in-progress: false
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy via SSH
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -35,16 +37,31 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            cd /opt/lluvia
+            cd /opt/lluvia-premiumv1
+            git fetch origin
+            git checkout main
             git pull origin main
-            # Sync backend source to build directory
-            cp -r /opt/lluvia-studio/backend/console.py /opt/lluvia/backend/console.py
-            cp -r /opt/lluvia-studio/backend/llm_router.py /opt/lluvia/backend/llm_router.py
-            cp -r /opt/lluvia-studio/backend/agents_catalog.py /opt/lluvia/backend/agents_catalog.py
-            # Rebuild and restart
-            docker compose build --no-cache backend
-            docker compose up -d
-            # Verify
-            sleep 10
-            curl -fs http://localhost:8001/api/ || exit 1
-            echo "Deploy successful"
+            bash scripts/deploy-production.sh --no-pull
+            echo "✓ Production deploy complete"
+
+  deploy-staging:
+    name: "→ Staging (develop)"
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging
+
+    steps:
+      - name: Deploy staging to VPS via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/lluvia-premiumv1
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+            BRANCH=develop bash scripts/deploy-production.sh --no-pull
+            echo "✓ Staging deploy complete"

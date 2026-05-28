@@ -1,6 +1,9 @@
-.PHONY: up down build restart logs shell test lint status deploy-local
+.PHONY: up down build restart logs shell test lint status deploy deploy-frontend
 
-# ── Local development ─────────────────────────────────────────────────────────
+REPO   := /opt/lluvia-premiumv1
+STATIC := /app/lluvia-deploy/backend/static
+
+# ── Production (run from /opt/lluvia-premiumv1) ───────────────────────────────
 
 up:
 	docker compose up -d
@@ -17,8 +20,20 @@ restart: build
 logs:
 	docker logs lluvia_backend -f --tail 100
 
+logs-mongo:
+	docker logs lluvia_mongo -f --tail 50
+
 shell:
 	docker exec -it lluvia_backend bash
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+
+build-frontend:
+	@echo "Building frontend..."
+	cd frontend && yarn build
+	@echo "Syncing to nginx static..."
+	rsync -a --delete frontend/build/ $(STATIC)/
+	@echo "✓ Frontend deployed to $(STATIC)"
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 
@@ -34,28 +49,37 @@ test:
 # ── Status ────────────────────────────────────────────────────────────────────
 
 status:
+	@echo "=== Source ==="
+	@git log --oneline -2
+	@echo ""
 	@echo "=== Containers ==="
-	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep lluvia
+	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep lluvia || true
 	@echo ""
 	@echo "=== Backend health ==="
-	@curl -s http://localhost:8001/api/ | python3 -m json.tool
+	@curl -s http://localhost:8001/api/ | python3 -c "import sys,json; d=json.load(sys.stdin); print(' status:', d.get('status'), '| version:', d.get('version'))"
 	@echo ""
-	@echo "=== Console LLM provider ==="
+	@echo "=== LLM provider ==="
 	@docker exec lluvia_backend python3 -c \
-		"from llm_router import get_console_client; c,m=get_console_client(); print('Model:', m)"
+		"from llm_router import get_console_client; c,m=get_console_client(); print(' Model:', m)" 2>/dev/null || true
+	@echo ""
+	@echo "=== Tools ==="
+	@docker exec lluvia_backend python3 -c \
+		"import agents_catalog; ag=agents_catalog.get_agent('lluvia_studio'); print(' Tools:', len(ag.get('tools',[])))" 2>/dev/null || true
 
-# ── Production deploy (VPS) ───────────────────────────────────────────────────
-# Run this on the VPS after git pull to rebuild and deploy without docker cp
+# ── Full production deploy ────────────────────────────────────────────────────
+# Runs git pull + frontend build + docker rebuild + restart + health check
 
-deploy-local:
-	@echo "Syncing source files..."
-	cp backend/console.py /opt/lluvia/backend/console.py
-	cp backend/llm_router.py /opt/lluvia/backend/llm_router.py
-	cp backend/agents_catalog.py /opt/lluvia/backend/agents_catalog.py
-	@echo "Rebuilding image..."
-	cd /opt/lluvia && docker compose build --no-cache backend
-	@echo "Restarting services..."
+deploy:
+	@bash scripts/deploy-production.sh
+
+deploy-frontend:
+	@bash scripts/deploy-production.sh --frontend
+
+# ── Rollback ──────────────────────────────────────────────────────────────────
+# Restores production to /opt/lluvia if something goes wrong
+
+rollback:
+	@echo "⚠ Rolling back to /opt/lluvia..."
+	cd /opt/lluvia-premiumv1 && docker compose down
 	cd /opt/lluvia && docker compose up -d
-	@echo "Verifying..."
-	@sleep 10
-	@curl -s http://localhost:8001/api/ | python3 -c "import sys,json; d=json.load(sys.stdin); print('Status:', d.get('status'))"
+	@echo "✓ Rolled back to /opt/lluvia"
