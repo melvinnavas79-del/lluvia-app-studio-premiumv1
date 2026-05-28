@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: {{APP_NAME_SLUG}}
+    runtime: python
+    rootDir: backend
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.9
+    healthCheckPath: /api/health

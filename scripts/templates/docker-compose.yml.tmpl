@@ -1,0 +1,70 @@
+# Lluvia App Studio - Stack del cliente
+# Generado por setup-cliente.sh - todos los placeholders __XXX__ se reemplazan via sed
+# v7.1: 100% interpolado por sed (cero dependencia de .env de docker-compose)
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: lluvia___SLUG___mongo
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cliente
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lluvia___SLUG___backend
+    restart: always
+    env_file: ./backend.env
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - cliente
+      - web
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8001/api/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_BACKEND_URL: __PUBLIC_URL__
+    container_name: lluvia___SLUG___frontend
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  mongo_data:
+    name: lluvia___SLUG___mongo_data
+
+networks:
+  cliente:
+    name: lluvia___SLUG___internal
+  web:
+    name: lluvia_proxy
+    external: true
