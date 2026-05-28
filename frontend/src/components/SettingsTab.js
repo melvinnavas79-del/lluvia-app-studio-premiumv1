@@ -1,10 +1,13 @@
-/* SettingsTab - configuración del usuario (GitHub + notificaciones + VPS + Telegram).
-   Compartido entre ClientDashboard y AdminDashboard. */
+/* SettingsTab - configuración del usuario (GitHub + Telegram + Cuenta).
+   VPS solo visible para admins. */
 import { useEffect, useState } from "react";
 import { api, formatError } from "../api";
+import { useAuth } from "../AuthContext";
 import VpsServersTab from "./VpsServersTab";
 
 export default function SettingsTab() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [activeSection, setActiveSection] = useState("github"); // github | vps | account
   const [form, setForm] = useState({
     github_token: "",
@@ -50,7 +53,7 @@ export default function SettingsTab() {
       }}>
         {[
           ["github", "🔧 GitHub"],
-          ["vps", "🖥 Mis Servidores"],
+          ...(isAdmin ? [["vps", "🖥 Mis Servidores"]] : []),
           ["account", "⚙ Cuenta"],
         ].map(([k, l]) => (
           <button key={k} onClick={() => setActiveSection(k)}
@@ -67,7 +70,7 @@ export default function SettingsTab() {
         ))}
       </div>
 
-      {activeSection === "vps" && <VpsServersTab />}
+      {activeSection === "vps" && isAdmin && <VpsServersTab />}
 
       {activeSection === "github" && (
       <form className="form-card" onSubmit={save}>

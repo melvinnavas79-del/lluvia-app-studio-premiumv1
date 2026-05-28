@@ -17,7 +17,7 @@ export default function ClientDashboard() {
   // los enlaces internos (ej "Configurá tu GitHub") puedan saltar entre tabs.
   const hashToTab = (h) => {
     const key = (h || "").replace(/^#\/?/, "").trim();
-    return ["chat", "recharge", "github", "settings", "studio", "myapps"].includes(key) ? key : "chat";
+    return ["chat", "recharge", "github", "settings", "myapps"].includes(key) ? key : "chat";
   };
   // Si volvemos desde PayPal con ?paypal=success o ?paypal=cancel, forzamos
   // el tab "recharge" para que el RechargeTab procese el callback.
@@ -79,9 +79,8 @@ export default function ClientDashboard() {
         {[
           ["chat", "Mis Agentes"],
           ["myapps", "Mis Apps"],
-          ["studio", "🛠 Studio"],
           ["recharge", "Recargar Oros"],
-          ["github", "Push a GitHub"],
+          ["github", "Mi GitHub"],
           ["settings", "Mi Cuenta"],
         ].map(([k, l]) => (
           <button
@@ -98,7 +97,6 @@ export default function ClientDashboard() {
       <main className="cd-main">
         {tab === "chat" && <BossConsole />}
         {tab === "myapps" && <AgentBuilder />}
-        {tab === "studio" && <Studio />}
         {tab === "recharge" && <RechargeTab onTopup={() => api.get("/credits/me").then((r) => setBalance(r.data.balance))} />}
         {tab === "github" && <GitHubTab />}
         {tab === "settings" && <SettingsTab />}

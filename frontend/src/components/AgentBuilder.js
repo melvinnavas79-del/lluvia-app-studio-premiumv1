@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { api, formatError } from "../api";
+import { useAuth } from "../AuthContext";
 
 const VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
 
 export default function AgentBuilder() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [builtin, setBuiltin] = useState([]);
   const [custom, setCustom] = useState([]);
   const [availTools, setAvailTools] = useState([]);
@@ -61,8 +64,10 @@ export default function AgentBuilder() {
     <div className="ab-wrap" data-testid="agent-builder">
       <div className="ab-head">
         <h3>Arquitecto Maestro — gestion de agentes</h3>
-        <button className="bc-new-btn" onClick={() => setEditing({ ...empty(), is_new: true })}
-                data-testid="ab-new-btn">+ Nuevo agente</button>
+        {isAdmin && (
+          <button className="bc-new-btn" onClick={() => setEditing({ ...empty(), is_new: true })}
+                  data-testid="ab-new-btn">+ Nuevo agente</button>
+        )}
       </div>
 
       {err && <div className="alert">{err}</div>}
