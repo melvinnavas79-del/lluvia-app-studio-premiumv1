@@ -9,6 +9,7 @@ on:
       - "frontend/public/**"
       - "docker-compose.yml"
       - "nginx.conf"
+      - "scripts/deploy-production.sh"
 
   workflow_dispatch:
     inputs:
@@ -17,11 +18,17 @@ on:
         type: choice
         options: [production, staging]
         default: production
+      mode:
+        description: "Deploy mode"
+        type: choice
+        options: [full, frontend-only]
+        default: full
 
 jobs:
   deploy-production:
     name: "→ Production (main)"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment: production
     concurrency:
@@ -35,18 +42,29 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 25m
           script: |
             set -e
+            echo "=== Deploy started: $(date) ==="
             cd /opt/lluvia-premiumv1
             git fetch origin
             git checkout main
             git pull origin main
-            bash scripts/deploy-production.sh --no-pull
-            echo "✓ Production deploy complete"
+            echo "Source: $(git log --oneline -1)"
+            MODE="${{ github.event.inputs.mode }}"
+            if [ "$MODE" = "frontend-only" ]; then
+              bash scripts/deploy-production.sh --frontend
+            else
+              bash scripts/deploy-production.sh --no-pull
+            fi
+            echo "=== Deploy finished: $(date) ==="
 
   deploy-staging:
     name: "→ Staging (develop)"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     environment: staging
 
@@ -57,11 +75,16 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          timeout: 30s
+          command_timeout: 25m
           script: |
             set -e
+            echo "=== Staging deploy started: $(date) ==="
             cd /opt/lluvia-premiumv1
             git fetch origin
             git checkout develop
             git pull origin develop
+            echo "Source: $(git log --oneline -1)"
             BRANCH=develop bash scripts/deploy-production.sh --no-pull
-            echo "✓ Staging deploy complete"
+            echo "=== Staging deploy finished: $(date) ==="
