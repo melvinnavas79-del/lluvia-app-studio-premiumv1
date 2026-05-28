@@ -982,25 +982,38 @@ OPENAI_TOOLS = [
 # para cualquier usuario registrado (book_appointment, push_to_my_github,
 # paypal_invoice_card, service_card, etc).
 ADMIN_ONLY_TOOLS = {
+    # ── System / shell ────────────────────────────────────────────────────────
     "shell_run",
+    "run_python",
     "provision_client_quick",
-    "create_agent", "update_agent", "delete_agent",
+    # ── Agent management (only admin creates/deletes global agents) ───────────
+    "create_agent", "update_agent", "delete_agent", "clone_agent",
+    "generate_agent_config", "create_workflow",
+    # ── GitHub (admin-level repo access) ──────────────────────────────────────
     "github_list_repos", "github_list_files", "github_read_file", "github_search_code",
-    # Platform internals
-    "get_platform_status", "list_jobs", "inspect_database", "list_containers",
-    # Comms (anti-spam)
-    "send_notification", "send_quick_email",
-    # DevOps
-    "create_checkpoint", "docker_exec", "run_tests",
-    # Agent generation / management
-    "generate_agent_config", "clone_agent", "create_workflow",
-    # Master Console
-    "run_python", "list_services", "list_env_vars", "get_logs",
-    # Comms externos
-    "send_telegram", "send_webhook",
-    # CTO stability layer
-    "self_diagnostic", "smart_rollback", "auto_fix_build",
+    "push_to_my_github",   # clients don't push code to arbitrary repos
+    "generate_changelog",
+    # ── VPS / infrastructure ──────────────────────────────────────────────────
+    "list_my_vps", "run_vps_command", "deploy_app_to_vps",
+    "tail_vps_logs", "restart_vps_service",
+    "create_checkpoint", "docker_exec",
+    # ── Platform internals ────────────────────────────────────────────────────
+    "get_platform_status", "list_jobs", "inspect_database",
+    "list_containers", "list_services", "list_env_vars", "get_logs",
+    "benchmark_endpoint", "get_openapi_schema",
+    # ── Agent stats / platform metrics ───────────────────────────────────────
+    "get_agent_stats",
+    # ── Comms (anti-spam: only admin sends platform-wide notifications) ───────
+    "send_notification", "send_quick_email", "send_telegram", "send_webhook",
+    # ── Build & test ─────────────────────────────────────────────────────────
+    "run_tests",
+    # ── CTO stability layer ───────────────────────────────────────────────────
+    "self_diagnostic", "smart_rollback", "analyze_architecture",
+    "auto_fix_build", "dependency_audit",
     "security_scan_basic", "audit_log_search", "process_manager", "inspect_config",
+    "queue_monitor", "git_diff_summary", "service_health_check",
+    # ── System metrics (raw process/disk/memory info) ─────────────────────────
+    "system_metrics",
 }
 
 

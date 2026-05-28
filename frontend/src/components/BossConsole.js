@@ -25,6 +25,8 @@ export default function BossConsole() {
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [appPickerForPush, setAppPickerForPush] = useState(null); // null | [{name,size_bytes,modified}]
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewEverOpened, setPreviewEverOpened] = useState(false);
+  const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [previewSlug, setPreviewSlug] = useState(null); // app slug for preview
   const [userApps, setUserApps] = useState([]); // list of user's apps
   const scrollRef = useRef(null);
@@ -504,7 +506,7 @@ export default function BossConsole() {
   };
 
   return (
-    <div className={`boss-console${previewOpen ? " boss-console--split" : ""}`} data-testid="boss-console">
+    <div className={`boss-console${previewOpen ? " boss-console--split" : ""}${previewFullscreen ? " boss-console--preview-fs" : ""}`} data-testid="boss-console">
       <aside className="bc-sidebar">
         <div className="bc-side-head">
           <button className="bc-new-btn" onClick={() => setShowPicker(true)} data-testid="bc-new-thread-btn">
@@ -556,6 +558,7 @@ export default function BossConsole() {
                 if (!previewOpen) {
                   const slug = previewSlug || detectPreviewSlug(activeSession?.messages) || (userApps[0]?.name);
                   setPreviewSlug(slug || null);
+                  setPreviewEverOpened(true);
                 }
                 setPreviewOpen(o => !o);
               }}
@@ -564,8 +567,20 @@ export default function BossConsole() {
               data-testid="bc-preview-toggle"
             >
               <span style={{ fontSize: "0.9rem" }}>👁</span>
-              Preview
+              <span className="bc-btn-label">Preview</span>
             </button>
+            {previewOpen && (
+              <button
+                className={`bc-shop-btn${previewFullscreen ? " bc-shop-btn--active" : ""}`}
+                onClick={() => setPreviewFullscreen(f => !f)}
+                title={previewFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+                style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+                data-testid="bc-preview-fullscreen"
+              >
+                <span style={{ fontSize: "0.9rem" }}>{previewFullscreen ? "⊡" : "⛶"}</span>
+                <span className="bc-btn-label">{previewFullscreen ? "Salir" : "Full"}</span>
+              </button>
+            )}
             <button className="bc-shop-btn" onClick={pushNow} data-testid="bc-push-github"
                     title="Push de tu workspace a GitHub"
                     style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
@@ -1738,14 +1753,17 @@ function VideoJobCard({ card, agent, backendBase }) {
         )}
       </div>
 
-      {/* ── Live Preview Panel (split view) ──────────────────────────── */}
-      {previewOpen && (
-        <div className="bc-preview-pane" data-testid="bc-preview-pane">
+      {/* ── Live Preview Panel — stays in DOM once opened, hidden via CSS ── */}
+      {previewEverOpened && (
+        <div
+          className={`bc-preview-pane${!previewOpen ? " bc-preview-pane--hidden" : ""}${previewFullscreen ? " bc-preview-pane--fullscreen" : ""}`}
+          data-testid="bc-preview-pane"
+        >
           {previewSlug ? (
             <PreviewPanel
               appSlug={previewSlug}
               autoStart={true}
-              onClose={() => setPreviewOpen(false)}
+              onClose={() => { setPreviewOpen(false); setPreviewFullscreen(false); }}
             />
           ) : (
             <div className="preview-panel">

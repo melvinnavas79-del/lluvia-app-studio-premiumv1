@@ -53,6 +53,9 @@ async def list_custom_agents(user: dict = Depends(get_current_user)):
 
 @router.post("")
 async def create_custom_agent(data: AgentIn, user: dict = Depends(get_current_user)):
+    # Only admin can create agents. Clients use pre-built agents assigned by admin.
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede crear agentes globales")
     aid = re.sub(r"[^a-z0-9_-]", "", data.id.lower())[:40]
     if not aid:
         raise HTTPException(status_code=400, detail="id invalido")
@@ -60,6 +63,8 @@ async def create_custom_agent(data: AgentIn, user: dict = Depends(get_current_us
         raise HTTPException(status_code=409, detail=f"id '{aid}' colisiona con built-in")
     if data.voice not in VOICES:
         data.voice = "alloy"
+    # Strip admin-only tools from any agent created (defense in depth)
+    from console import ADMIN_ONLY_TOOLS as _ADMIN_TOOLS
     tools = [t for t in data.tools if t in VALID_TOOLS]
     db = _db_ref["db"]
     if await db.custom_agents.find_one({"id": aid}, {"_id": 0}):
