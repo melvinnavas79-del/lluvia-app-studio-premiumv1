@@ -217,16 +217,7 @@ function TelegramLinkCard() {
     }).catch(() => setHasAgents(false));
   }, []);
 
-  if (hasAgents === null) return null;
-  if (!hasAgents) return (
-    <div className="form-card" style={{ marginTop: "1.5rem", opacity: 0.7 }}>
-      <h3>Vincular Telegram</h3>
-      <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
-        Disponible cuando tengas al menos un agente activo.
-        Usá el chat con tus agentes para desbloquear esta opción.
-      </p>
-    </div>
-  );
+  if (!hasAgents) return null;
 
   return <TelegramLinkForm />;
 }

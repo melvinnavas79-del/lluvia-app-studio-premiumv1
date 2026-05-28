@@ -27,6 +27,8 @@ export default function BossConsole() {
   const [cameraErr, setCameraErr] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [appPickerForPush, setAppPickerForPush] = useState(null); // null | [{name,size_bytes,modified}]
+  const [showGitHubSetup, setShowGitHubSetup] = useState(false);
+  const [githubConfigured, setGithubConfigured] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewEverOpened, setPreviewEverOpened] = useState(false);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
@@ -70,6 +72,11 @@ export default function BossConsole() {
     try {
       const { data } = await api.get("/me/apps");
       setUserApps(data.apps || []);
+    } catch (_) {}
+    // Load github config status
+    try {
+      const { data } = await api.get("/me/settings");
+      setGithubConfigured(!!(data.has_github_token && data.github_repo));
     } catch (_) {}
   };
 
@@ -481,8 +488,7 @@ export default function BossConsole() {
     } catch (e) {
       const detail = e?.response?.data?.detail || formatError(e);
       if (detail?.toLowerCase().includes("token") || detail?.toLowerCase().includes("configura")) {
-        if (window.confirm("Falta tu token de GitHub. ¿Ir a 'Mi Cuenta' ahora para configurarlo?"))
-          window.dispatchEvent(new CustomEvent("lluvia:goto-settings"));
+        setShowGitHubSetup(true);
       } else {
         alert(`✕ ${detail}`);
       }
@@ -724,11 +730,11 @@ export default function BossConsole() {
                   </button>
                   <button
                     className="bc-attach-menu-item"
-                    onClick={() => { setShowAttachMenu(false); pushNow(); }}
+                    onClick={() => { setShowAttachMenu(false); githubConfigured ? pushNow() : setShowGitHubSetup(true); }}
                     data-testid="bc-attach-github"
                   >
                     <span className="bc-attach-menu-icon">⬆</span>
-                    <span>Push a GitHub</span>
+                    <span>{githubConfigured ? "Push a GitHub" : "Conectar GitHub"}</span>
                   </button>
                 </div>
               )}
@@ -935,6 +941,123 @@ export default function BossConsole() {
           </div>
         </div>
       )}
+
+      {/* Modal: GitHub setup inline */}
+      {showGitHubSetup && (
+        <GitHubSetupModal
+          onClose={() => setShowGitHubSetup(false)}
+          onSaved={() => {
+            setGithubConfigured(true);
+            setShowGitHubSetup(false);
+            pushNow();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function GitHubSetupModal({ onClose, onSaved }) {
+  const [token, setToken] = useState("");
+  const [repo, setRepo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const save = async () => {
+    if (!token.trim() || !repo.trim()) { setErr("Token y repositorio son obligatorios."); return; }
+    setBusy(true); setErr("");
+    try {
+      await api.put("/me/settings", { github_token: token.trim(), github_repo: repo.trim() });
+      onSaved();
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Error guardando. Intentá de nuevo.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 300,
+               display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "var(--surface-card, #1a1a2e)", borderRadius: 16, padding: "1.5rem",
+                 width: "100%", maxWidth: 420, boxShadow: "0 16px 56px rgba(0,0,0,0.55)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.01em" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ verticalAlign: "middle", marginRight: 6 }}>
+                <path d="M12 .297a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.02c-3.34.72-4.04-1.61-4.04-1.61-.55-1.4-1.35-1.78-1.35-1.78-1.1-.75.08-.74.08-.74 1.22.09 1.86 1.25 1.86 1.25 1.09 1.86 2.85 1.32 3.54 1.01.11-.79.42-1.32.77-1.62-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.31-.54-1.53.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.65.25 2.87.12 3.18.78.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12 12 0 0 0 12 .297z"/>
+              </svg>
+              Conectar GitHub
+            </div>
+            <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: 2 }}>
+              Solo se necesita una vez
+            </div>
+          </div>
+          <button onClick={onClose}
+            style={{ background: "transparent", border: 0, fontSize: "1.4rem", cursor: "pointer",
+                     color: "var(--text-muted)", lineHeight: 1, padding: "0 0.2rem" }}>×</button>
+        </div>
+
+        <div style={{ marginBottom: "0.75rem" }}>
+          <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600,
+                          color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+            Personal Access Token
+          </label>
+          <input
+            type="password"
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="ghp_..."
+            autoFocus
+            style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 9, fontSize: "0.9rem",
+                     border: "1px solid var(--border)", background: "var(--surface)",
+                     color: "var(--text-primary)", boxSizing: "border-box" }}
+          />
+          <a href="https://github.com/settings/tokens/new?scopes=repo&description=Lluvia+App+Studio"
+             target="_blank" rel="noreferrer"
+             style={{ fontSize: "0.75rem", color: "var(--brand-primary)", marginTop: "0.3rem", display: "inline-block" }}>
+            Crear token en GitHub (scope: repo) →
+          </a>
+        </div>
+
+        <div style={{ marginBottom: "1rem" }}>
+          <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600,
+                          color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+            Repositorio destino
+          </label>
+          <input
+            value={repo}
+            onChange={e => setRepo(e.target.value)}
+            placeholder="usuario/mi-repo"
+            style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 9, fontSize: "0.9rem",
+                     border: "1px solid var(--border)", background: "var(--surface)",
+                     color: "var(--text-primary)", boxSizing: "border-box" }}
+          />
+        </div>
+
+        {err && (
+          <div style={{ padding: "0.55rem 0.75rem", borderRadius: 8, background: "rgba(239,68,68,0.1)",
+                        border: "1px solid rgba(239,68,68,0.3)", color: "#EF4444",
+                        fontSize: "0.83rem", marginBottom: "0.75rem" }}>
+            {err}
+          </div>
+        )}
+
+        <button
+          onClick={save}
+          disabled={busy}
+          style={{ width: "100%", padding: "0.75rem", borderRadius: 10, fontWeight: 700,
+                   fontSize: "0.95rem", border: 0, cursor: busy ? "wait" : "pointer",
+                   background: "linear-gradient(135deg,#2563EB,#7C3AED)", color: "#fff",
+                   opacity: busy ? 0.7 : 1 }}
+        >
+          {busy ? "Guardando..." : "Conectar y hacer Push →"}
+        </button>
+      </div>
     </div>
   );
 }
