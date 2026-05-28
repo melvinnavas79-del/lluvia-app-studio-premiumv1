@@ -157,6 +157,7 @@ export default function SettingsTab() {
       )}
 
       {activeSection === "account" && <TelegramLinkCard />}
+
     </div>
   );
 }
@@ -207,6 +208,30 @@ function ValidateGitHubButton({ hasToken }) {
 }
 
 function TelegramLinkCard() {
+  const [hasAgents, setHasAgents] = useState(null);
+
+  useEffect(() => {
+    api.get("/agents").then(r => {
+      const total = (r.data.builtin?.length || 0) + (r.data.custom?.length || 0);
+      setHasAgents(total > 0);
+    }).catch(() => setHasAgents(false));
+  }, []);
+
+  if (hasAgents === null) return null;
+  if (!hasAgents) return (
+    <div className="form-card" style={{ marginTop: "1.5rem", opacity: 0.7 }}>
+      <h3>Vincular Telegram</h3>
+      <p style={{ color: "var(--text-secondary)", fontSize: "0.88rem" }}>
+        Disponible cuando tengas al menos un agente activo.
+        Usá el chat con tus agentes para desbloquear esta opción.
+      </p>
+    </div>
+  );
+
+  return <TelegramLinkForm />;
+}
+
+function TelegramLinkForm() {
   const [code, setCode] = useState("");
   const [linked, setLinked] = useState([]);
   const [busy, setBusy] = useState(false);

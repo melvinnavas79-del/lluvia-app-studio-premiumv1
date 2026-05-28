@@ -722,16 +722,14 @@ export default function BossConsole() {
                     <span className="bc-attach-menu-icon">📷</span>
                     <span>Tomar foto</span>
                   </button>
-                  {isAdmin && (
-                    <button
-                      className="bc-attach-menu-item"
-                      onClick={() => { setShowAttachMenu(false); pushNow(); }}
-                      data-testid="bc-attach-github"
-                    >
-                      <span className="bc-attach-menu-icon">⬆</span>
-                      <span>Push a GitHub</span>
-                    </button>
-                  )}
+                  <button
+                    className="bc-attach-menu-item"
+                    onClick={() => { setShowAttachMenu(false); pushNow(); }}
+                    data-testid="bc-attach-github"
+                  >
+                    <span className="bc-attach-menu-icon">⬆</span>
+                    <span>Push a GitHub</span>
+                  </button>
                 </div>
               )}
               <textarea
