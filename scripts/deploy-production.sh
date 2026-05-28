@@ -75,3 +75,5 @@ log "=== Deploy complete ==="
 log "  Source: $REPO_DIR (branch: $BRANCH)"
 log "  Nginx static: $NGINX_STATIC"
 log "  Backend: http://localhost:8001/api/"
+
+# ── deploy-production.sh end ─────────────────────────────────────────────────

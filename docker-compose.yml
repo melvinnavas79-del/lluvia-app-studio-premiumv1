@@ -1,3 +1,10 @@
+# Lluvia App Studio — Production Docker Compose
+# Source: /opt/lluvia-premiumv1 (premium repo)
+# Project name is pinned to "lluvia" so container names, network, and
+# MongoDB volume are preserved across directory changes.
+
+name: lluvia
+
 services:
   mongo:
     image: mongo:7
@@ -29,8 +36,8 @@ services:
     networks:
       - lluvia
     volumes:
+      - /opt/lluvia-premiumv1:/opt/lluvia-premiumv1
       - /opt/lluvia:/opt/lluvia
-      - /opt/lluvia-studio:/opt/lluvia-studio
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       test: ["CMD", "curl", "-fs", "http://localhost:8001/api/"]
@@ -53,7 +60,7 @@ services:
 
 volumes:
   mongo_data:
-    name: lluvia_mongo_data
+    name: lluvia_mongo_data   # preserves existing MongoDB data
 
 networks:
   lluvia:
