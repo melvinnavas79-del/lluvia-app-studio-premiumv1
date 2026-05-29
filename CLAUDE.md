@@ -2,6 +2,28 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Versioning Strategy (definitive — 2026-05-29)
+
+| Repo | Role | GitHub | Docker |
+|------|------|--------|--------|
+| `lluvia-app-studio-premiumv1` (**this repo**) | **PRODUCTION** | PUBLIC | Controls Docker — `docker-compose.yml` lives here |
+| `lluvia-app-studio-v2` | **DEVELOPMENT** | PRIVATE | No Docker control |
+| `v2.0-stable` | **FROZEN SNAPSHOT** | Tag in v2 | — |
+
+**Rules:**
+- All new features and experiments go in `v2` first.
+- When v2 reaches a stable checkpoint: merge changed files → commit in premiumv1 → rebuild Docker image.
+- Never docker cp files directly to container without committing first in premiumv1.
+- Never develop directly in premiumv1 (except hotfixes).
+- `v2.0-stable` tag marks the last frozen state; create a new tag (v2.1-stable, etc.) at each milestone.
+
+**Deploy protocol:**
+1. Finish feature in v2 → commit.
+2. Copy changed files to premiumv1/backend/ or premiumv1/frontend/.
+3. Commit in premiumv1 with `[sync]` prefix.
+4. `cd /opt/lluvia-premiumv1 && docker compose build --no-cache backend && docker compose up -d backend`
+5. Verify health: `curl -s http://localhost:8001/api/ | python3 -m json.tool`
+
 ## Stack
 
 - **Backend**: FastAPI (Python 3.11), Motor (async MongoDB), Uvicorn on port 8001
