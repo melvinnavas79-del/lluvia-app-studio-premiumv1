@@ -283,13 +283,12 @@ OPENAI_TOOLS = [
     {"type": "function", "function": {
         "name": "generate_tiktok_app",
         "description": (
-            "MATERIALIZA en el workspace del usuario una app de VIDEO VERTICAL en vivo "
-            "estilo TikTok / Bigo Live / Kuaishou, lista para deployar. Copia un template "
-            "pre-construido (FastAPI + SQLite + Vanilla JS + HLS) con 4 pantallas: Feed "
-            "vertical con scroll-snap, Descubrir/Trending, Subir video, Perfil. Incluye "
-            "likes, comentarios en vivo, follows, regalos virtuales y monetizacion. "
-            "Despues el cliente puede usar push_to_my_github para subirlo a su repo. "
-            "Usar SOLO despues de que el cliente confirmo nombre + color de marca."
+            "MATERIALIZA INMEDIATAMENTE en el workspace del usuario una app de video vertical "
+            "estilo TikTok, lista para deployar. Template pre-construido: FastAPI + SQLite + "
+            "Vanilla JS + HLS. 4 pantallas: Feed vertical scroll-snap, Descubrir/Trending, "
+            "Subir video, Perfil. Likes, comentarios en vivo, follows, regalos y monetizacion. "
+            "Usar tan pronto el usuario mencione querer una app de video/TikTok/shorts. "
+            "Si no se especifica color, usar #FF0050. No esperar confirmacion adicional."
         ),
         "parameters": {"type": "object", "properties": {
             "app_name": {"type": "string", "description": "Nombre visible de la app (ej: VibeShort, LiveStar)."},
